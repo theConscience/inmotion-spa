@@ -1,99 +1,148 @@
-:80 {
-  # /api/*
-  handle_path /api/* {
-    uri strip_prefix /api
-    reverse_proxy api:3000
-  }
+:80
 
-  # /admin/*
-  handle_path /admin/* {
-    uri strip_prefix /admin
-    reverse_proxy admin:4000
-  }
-
-  # health для внешних проверок
-  route /health {
-    respond 200 {
-      body "ok"
-    }
-  }
-
-  header {
-    X-Content-Type-Options "nosniff"
-    Referrer-Policy "no-referrer"
-    X-Frame-Options "DENY"
-  }
+# статика админки
+handle_path /admin/* {
+	root * /srv/admin
+	file_server
 }
 
+# прокси API
+handle_path /api/* {
+	reverse_proxy api:3000
+}
+
+# удобно: редирект с / на /admin/
+handle {
+	redir / /admin/ 302
+}
 
 # :80 {
-# 	# Healthcheck напрямую к API
-# 	handle_path /health* {
-# 		reverse_proxy api:3000
-# 	}
 #
-# 	# Админка статикой из каталога (Nuxt generate -> apps/admin/public)
-# 	handle /admin* {
-# 		uri strip_prefix /admin
-# 		root * /srv/admin
-# 		file_server
-# 	}
+# 	encode zstd gzip
 #
-# 	# Всё остальное — на API (удобно для будущего REST/админ-API)
+# 	# API
 # 	handle_path /api/* {
-# 		uri strip_prefix /api
-# 		reverse_proxy api:3000
+# 		reverse_proxy api:{$PORT_API}
 # 	}
 #
-# 	# Базовые заголовки безопасности
-# 	header {
-# 		X-Content-Type-Options "nosniff"
-# 		Referrer-Policy "no-referrer"
-# 		X-Frame-Options "DENY"
-# 	}
-# }
-
-
-# :80 {
-# 	# /health прямиком в API
-# 	handle_path /health* {
-# 		reverse_proxy api:3000
+# 	# Admin SPA (мы отдаём статику из admin-контейнера)
+# 	handle_path /admin/* {
+# 		reverse_proxy admin:{$PORT_ADMIN}
 # 	}
 #
-# 	# админка — статикой
-# 	handle /admin* {
-# 		uri strip_prefix /admin
-# 		root * /srv/admin
-# 		file_server
-# 	}
-#
-# 	# всё остальное — в API
+# 	# Фоллбек: можно сделать редирект на /admin
 # 	handle {
-# 		reverse_proxy api:3000
+# 		redir /admin 302
 # 	}
 #
-# 	# базовые заголовки
 # 	header {
 # 		X-Content-Type-Options "nosniff"
-# 		Referrer-Policy "no-referrer"
 # 		X-Frame-Options "DENY"
+# 		Referrer-Policy "strict-origin-when-cross-origin"
 # 	}
-#
-#   /* @api host 195.58.34.195 */
-#   /* handle_path /api/1* { */
-#   /*   uri strip_prefix /api */
-#   /*   reverse_proxy api:3000 */
-#   /* } */
-#
-#   /* handle_path /admin/1* { */
-#   /*   uri strip_prefix /admin */
-#   /*   reverse_proxy admin:4000 */
-#   /* } */
-#
-#   /* # health для внешней проверки */
-#   /* route /health { */
-#   /*   respond 200 { */
-#   /*     body "ok" */
-#   /*   } */
-#   /* } */
 # }
+#
+# # :80 {
+# #   reverse_proxy /admin* admin:4000
+# #   reverse_proxy api:3000
+# # }
+# #
+# # # :80 {
+# # #   # /api/*
+# # #   handle_path /api/* {
+# # #     uri strip_prefix /api
+# # #     reverse_proxy api:3000
+# # #   }
+# # #
+# # #   # /admin/*
+# # #   handle_path /admin/* {
+# # #     uri strip_prefix /admin
+# # #     reverse_proxy admin:4000
+# # #   }
+# # #
+# # #   # health для внешних проверок
+# # #   route /health {
+# # #     respond 200 {
+# # #       body "ok"
+# # #     }
+# # #   }
+# # #
+# # #   header {
+# # #     X-Content-Type-Options "nosniff"
+# # #     Referrer-Policy "no-referrer"
+# # #     X-Frame-Options "DENY"
+# # #   }
+# # # }
+# #
+# #
+# # # :80 {
+# # # 	# Healthcheck напрямую к API
+# # # 	handle_path /health* {
+# # # 		reverse_proxy api:3000
+# # # 	}
+# # #
+# # # 	# Админка статикой из каталога (Nuxt generate -> apps/admin/public)
+# # # 	handle /admin* {
+# # # 		uri strip_prefix /admin
+# # # 		root * /srv/admin
+# # # 		file_server
+# # # 	}
+# # #
+# # # 	# Всё остальное — на API (удобно для будущего REST/админ-API)
+# # # 	handle_path /api/* {
+# # # 		uri strip_prefix /api
+# # # 		reverse_proxy api:3000
+# # # 	}
+# # #
+# # # 	# Базовые заголовки безопасности
+# # # 	header {
+# # # 		X-Content-Type-Options "nosniff"
+# # # 		Referrer-Policy "no-referrer"
+# # # 		X-Frame-Options "DENY"
+# # # 	}
+# # # }
+# #
+# #
+# # # :80 {
+# # # 	# /health прямиком в API
+# # # 	handle_path /health* {
+# # # 		reverse_proxy api:3000
+# # # 	}
+# # #
+# # # 	# админка — статикой
+# # # 	handle /admin* {
+# # # 		uri strip_prefix /admin
+# # # 		root * /srv/admin
+# # # 		file_server
+# # # 	}
+# # #
+# # # 	# всё остальное — в API
+# # # 	handle {
+# # # 		reverse_proxy api:3000
+# # # 	}
+# # #
+# # # 	# базовые заголовки
+# # # 	header {
+# # # 		X-Content-Type-Options "nosniff"
+# # # 		Referrer-Policy "no-referrer"
+# # # 		X-Frame-Options "DENY"
+# # # 	}
+# # #
+# # #   /* @api host 195.58.34.195 */
+# # #   /* handle_path /api/1* { */
+# # #   /*   uri strip_prefix /api */
+# # #   /*   reverse_proxy api:3000 */
+# # #   /* } */
+# # #
+# # #   /* handle_path /admin/1* { */
+# # #   /*   uri strip_prefix /admin */
+# # #   /*   reverse_proxy admin:4000 */
+# # #   /* } */
+# # #
+# # #   /* # health для внешней проверки */
+# # #   /* route /health { */
+# # #   /*   respond 200 { */
+# # #   /*     body "ok" */
+# # #   /*   } */
+# # #   /* } */
+# # # }

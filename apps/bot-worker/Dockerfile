@@ -1,31 +1,43 @@
-# ---------- deps (устанавливаем зависимости с pnpm) ----------
-FROM node:22-alpine AS deps
-WORKDIR /app
-# включаем pnpm через corepack
-RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
-# копим только пакетный манифест и лок — детерминированная сборка
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+ARG NODE_VERSION=22-alpine
+ARG PNPM_VERSION=10.18.3
 
-# ---------- build (собираем TypeScript -> dist) ----------
-FROM node:22-alpine AS build
-WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
-# re-use deps
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml tsconfig.json ./
-COPY src ./src
-RUN pnpm build
+FROM node:${NODE_VERSION} AS deps
+WORKDIR /repo
+RUN npm i -g pnpm@${PNPM_VERSION}
 
-# ---------- runtime (чистый прод-образ) ----------
-FROM node:22-alpine AS runtime
+COPY .npmrc ./.npmrc
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/bot-worker/package.json ./apps/bot-worker/package.json
+COPY apps/bot-api/package.json ./apps/bot-api/package.json
+
+RUN pnpm -w install --frozen-lockfile --prod=false
+
+FROM node:${NODE_VERSION} AS build
+WORKDIR /repo
+RUN npm i -g pnpm@${PNPM_VERSION}
+COPY .npmrc ./.npmrc
+
+COPY --from=deps /repo/ ./
+
+COPY apps/bot-worker/tsconfig.json ./apps/bot-worker/tsconfig.json
+COPY apps/bot-worker/src ./apps/bot-worker/src
+
+RUN pnpm -C apps/bot-worker exec -- tsc -v
+RUN pnpm --filter inmotion-worker run build
+
+FROM node:${NODE_VERSION} AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
-# ставим только prod-зависимости (минимальный образ)
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --prod --frozen-lockfile
-# кладём собранный код
-COPY --from=build /app/dist ./dist
-# EXPOSE 3000
-CMD ["node","dist/worker.js"]
+RUN npm i -g pnpm@${PNPM_VERSION}
+COPY .npmrc ./.npmrc
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/bot-worker/package.json ./apps/bot-worker/package.json
+COPY apps/bot-api/package.json ./apps/bot-api/package.json
+
+RUN pnpm --filter inmotion-worker install --frozen-lockfile --prod
+
+COPY --from=build /repo/apps/bot-worker/dist ./dist
+
+CMD ["node", "dist/worker.js"]
