@@ -1,0 +1,13 @@
+# .dockerignore
+# CHANGED: ускоряем build context для Docker (особенно важно при context: .)
+
+**/node_modules
+**/dist
+**/.nuxt
+**/.output
+
+data/pg
+logs
+
+.git
+.DS_Store

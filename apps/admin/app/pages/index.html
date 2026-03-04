@@ -1,0 +1,12 @@
+<template>
+  <main style="padding:24px; font-family: system-ui, -apple-system, Segoe UI, Roboto">
+    <h1>Admin (MVP)</h1>
+    <p>Если API жив, ниже будет <code>{ ok: true }</code>:</p>
+    <pre>{{ apiHealth }}</pre>
+  </main>
+</template>
+
+<script setup lang="ts">
+const apiHealth = await $fetch('/api/health').catch(() => 'API недоступно');
+// Caddy проксирует /api/* -> api:3000
+</script>

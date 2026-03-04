@@ -1,0 +1,30 @@
+{
+  "name": "inmotion-spa",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.12.0",
+  "pnpm": {
+    "overrides": {
+      "@types/request": "2.48.13",
+      "tough-cookie": "4.1.3"
+    }
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "build_2": "pnpm -r --filter ./apps/** run build",
+    "preview": "pnpm -r preview",
+    "lint": "echo 'add linters later'",
+    "postinstall": "echo 'root postinstall'",
+    "start": "docker compose up -d --build",
+    "migrate": "pnpm --filter @inmotion/prisma prisma migrate deploy",
+    "dev:api": "pnpm --filter ./apps/bot-api dev",
+    "dev:worker": "pnpm --filter ./apps/bot-worker dev",
+    "dev:admin": "pnpm --filter ./apps/admin dev",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

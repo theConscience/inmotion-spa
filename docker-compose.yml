@@ -1,0 +1,187 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pg
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/bot-api/Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION:-22-alpine}
+        PNPM_VERSION: ${PNPM_VERSION:-9.12.0}
+    container_name: bot-api
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT_API:-3000}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ADMIN_TOKEN: ${ADMIN_TOKEN}
+    expose:
+      - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+
+  worker:
+    build:
+      context: .
+      dockerfile: ./apps/bot-worker/Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION:-22-alpine}
+        PNPM_VERSION: ${PNPM_VERSION:-9.12.0}
+    container_name: bot-worker
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: "--dns-result-order=ipv4first"  # <- FIX
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TG_BOT_TOKEN: ${TG_BOT_TOKEN}
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+      - net.ipv6.conf.default.disable_ipv6=1
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+      - 9.9.9.9
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "${PORT_HTTP:-80}:80"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./apps/admin/public:/srv/admin:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    logging: *default-logging
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+# x-logging: &default-logging
+#   driver: "json-file"
+#   options:
+#     max-size: "10m"
+#     max-file: "3"
+#
+# services:
+#   db:
+#     image: postgres:16-alpine
+#     container_name: pg
+#     restart: unless-stopped
+#     env_file: ./.env
+#     environment:
+#       POSTGRES_DB: ${POSTGRES_DB}
+#       POSTGRES_USER: ${POSTGRES_USER}
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#     volumes:
+#       - ./data/pg:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL","pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 10
+#     logging: *default-logging
+#
+#   api:
+#     build:
+#       context: .
+#       dockerfile: ./apps/bot-api/Dockerfile
+#     container_name: bot-api
+#     restart: unless-stopped
+#     env_file: ./.env
+#     environment:
+#       NODE_ENV: production
+#       PORT: ${PORT_API:-3000}
+#       POSTGRES_HOST: ${POSTGRES_HOST:-db}
+#       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+#       POSTGRES_DB: ${POSTGRES_DB}
+#       POSTGRES_USER: ${POSTGRES_USER}
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#       ADMIN_TOKEN: ${ADMIN_TOKEN}
+#     expose:
+#       - "3000"
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     logging: *default-logging
+#
+#   worker:
+#     build:
+#       context: .
+#       dockerfile: ./apps/bot-worker/Dockerfile
+#     container_name: bot-worker
+#     restart: unless-stopped
+#     env_file: ./.env
+#     environment:
+#       NODE_ENV: production
+#       POSTGRES_HOST: ${POSTGRES_HOST:-db}
+#       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+#       POSTGRES_DB: ${POSTGRES_DB}
+#       POSTGRES_USER: ${POSTGRES_USER}
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#       TG_BOT_TOKEN: ${TG_BOT_TOKEN}
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     logging: *default-logging
+#
+#   caddy:
+#     image: caddy:2.8-alpine
+#     container_name: caddy
+#     restart: unless-stopped
+#     ports:
+#       - "${PORT_HTTP:-80}:80"
+#     volumes:
+#       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+#       - ./apps/admin/public:/srv/admin:ro
+#       - caddy_data:/data
+#       - caddy_config:/config
+#     depends_on:
+#       - api
+#     logging: *default-logging
+#
+# volumes:
+#   caddy_data:
+#   caddy_config:

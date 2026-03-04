@@ -1,0 +1,75 @@
+enerator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  id         BigInt   @id @default(autoincrement())
+  chatId     BigInt   @unique
+  phone      String?  @db.VarChar(32)
+  firstName  String?  @db.VarChar(128)
+  lastName   String?  @db.VarChar(128)
+  username   String?  @db.VarChar(64)
+  optIn      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  messages   Message[]
+}
+
+model Template {
+  id         BigInt   @id @default(autoincrement())
+  key        String   @unique
+  text       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Job {
+  id         BigInt   @id @default(autoincrement())
+  dedupeKey  String?  @unique
+  payload    Json
+  state      JobState @default(PENDING)
+  leaseUntil DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum JobState {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Delivery {
+  id         BigInt   @id @default(autoincrement())
+  jobId      BigInt
+  chatId     BigInt
+  status     String
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@index([jobId])
+  @@index([chatId])
+}
+
+model Message {
+  id         BigInt   @id @default(autoincrement())
+  chatId     BigInt
+  direction  Direction
+  text       String?
+  attachments Json?
+  createdAt  DateTime @default(now())
+
+  contact    Contact? @relation(fields: [chatId], references: [chatId])
+  @@index([chatId])
+}
+
+enum Direction {
+  IN
+  OUT
+}

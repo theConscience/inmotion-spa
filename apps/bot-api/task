@@ -1,0 +1,81 @@
+/**
+ * Нужно сделать эффект постепенного вывода текста.
+ * Пример: https://yastatic.net/s3/taxi-front/tasks/task-matrix.html
+ *
+ * Напишите функцию typeWriter(delay, outputChar), возвращающую функцию writeText(text).
+ *
+ * writeText(text) далее вызывается несколько раз в разные моменты времени и должна
+ * вызывать outputChar поочерёдно для каждого символа строки text с задержкой в delay миллисекунд.
+ *
+ *  writeText('ab')
+ *  writeText('CD')     writeText('ef')         writeText('G') writeText('xy')
+ *             │                   │                       │              │
+ *             ▼       250ms       ▼         300ms         ▼     200ms    ▼
+ *             ├───────┬───────┬───┴───┬───────┬───────┬───┴───┬──────────┼───────┐
+ *             ▲ 100ms ▲ 100ms ▲ 100ms ▲ 100ms ▲ 100ms ▲ 100ms ▲  150ms   ▲ 100ms ▲
+ *             │       │       │       │       │       │       │          │       │
+ * outputChar('a')    'b'     'C'     'D'     'e'     'f'     'G'        'x'     'y'
+ *
+ *
+ * type OutputChar = (char: string) => void;
+ * type WriteText = (text: string) => void;
+ * function typeWriter(delay: number, outputText: OutputChar): WriteText;
+ *
+ * Решение должно быть максимально эффективным по сложности и «отпускать» ссылку на строку сразу же после того,
+ * как последний символ строки был выведен.
+ */
+
+function typeWriter(delay, outputChar) {
+    // your code here
+    let firstRun = true
+    let writeIter = 0
+    let readIter = 0
+    let currentPos = 0
+
+    const stringHolder = {}
+    // { '0': 'ab', '1': 'cd' }
+
+    return function writeText(str) {
+      stringHolder[writeIter] = str
+      writeIter++
+
+      const timeoutCb = () => {
+        const currentValue = stringHolder[readIter]
+        if (!currentValue) {
+            firstRun = true
+            return
+        }
+
+        firstRun = false
+        outputChar(currentValue[currentPos])
+        currentPos++
+        if (currentPos > currentValue.length - 1) {
+            delete stringHolder[readIter]
+            readIter++
+            currentPos = 0
+        }
+        setTimeout(timeoutCb, delay)
+      }
+
+      if (firstRun) timeoutCb()
+    }
+}
+
+function runTest() {
+    console.clear();
+
+    let start = Date.now();
+
+    function outputChar(char) {
+        console.log(`${Date.now() - start}ms: ${char}`);
+    }
+
+    const writeText = typeWriter(100, outputChar);
+    writeText('ab');
+    writeText('CD');
+    setTimeout(() => writeText('ef'), 250);
+    setTimeout(() => writeText('G'), 550);
+    setTimeout(() => writeText('xy'), 750);
+}
+
+runTest();

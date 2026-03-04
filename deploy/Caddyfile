@@ -1,0 +1,99 @@
+:80 {
+  # /api/*
+  handle_path /api/* {
+    uri strip_prefix /api
+    reverse_proxy api:3000
+  }
+
+  # /admin/*
+  handle_path /admin/* {
+    uri strip_prefix /admin
+    reverse_proxy admin:4000
+  }
+
+  # health для внешних проверок
+  route /health {
+    respond 200 {
+      body "ok"
+    }
+  }
+
+  header {
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "no-referrer"
+    X-Frame-Options "DENY"
+  }
+}
+
+
+# :80 {
+# 	# Healthcheck напрямую к API
+# 	handle_path /health* {
+# 		reverse_proxy api:3000
+# 	}
+#
+# 	# Админка статикой из каталога (Nuxt generate -> apps/admin/public)
+# 	handle /admin* {
+# 		uri strip_prefix /admin
+# 		root * /srv/admin
+# 		file_server
+# 	}
+#
+# 	# Всё остальное — на API (удобно для будущего REST/админ-API)
+# 	handle_path /api/* {
+# 		uri strip_prefix /api
+# 		reverse_proxy api:3000
+# 	}
+#
+# 	# Базовые заголовки безопасности
+# 	header {
+# 		X-Content-Type-Options "nosniff"
+# 		Referrer-Policy "no-referrer"
+# 		X-Frame-Options "DENY"
+# 	}
+# }
+
+
+# :80 {
+# 	# /health прямиком в API
+# 	handle_path /health* {
+# 		reverse_proxy api:3000
+# 	}
+#
+# 	# админка — статикой
+# 	handle /admin* {
+# 		uri strip_prefix /admin
+# 		root * /srv/admin
+# 		file_server
+# 	}
+#
+# 	# всё остальное — в API
+# 	handle {
+# 		reverse_proxy api:3000
+# 	}
+#
+# 	# базовые заголовки
+# 	header {
+# 		X-Content-Type-Options "nosniff"
+# 		Referrer-Policy "no-referrer"
+# 		X-Frame-Options "DENY"
+# 	}
+#
+#   /* @api host 195.58.34.195 */
+#   /* handle_path /api/1* { */
+#   /*   uri strip_prefix /api */
+#   /*   reverse_proxy api:3000 */
+#   /* } */
+#
+#   /* handle_path /admin/1* { */
+#   /*   uri strip_prefix /admin */
+#   /*   reverse_proxy admin:4000 */
+#   /* } */
+#
+#   /* # health для внешней проверки */
+#   /* route /health { */
+#   /*   respond 200 { */
+#   /*     body "ok" */
+#   /*   } */
+#   /* } */
+# }
