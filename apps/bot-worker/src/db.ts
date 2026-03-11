@@ -25,10 +25,14 @@ export type TgLink = {
 };
 
 export async function dbPing() {
+  console.warn('pinging DB...')
+
   await pool.query("select 1");
 }
 
 export async function upsertLinkByPhone(chatId: number, phone: string) {
+  console.warn('rewrite link by phone:', phone, ' for chat with #id:', chatId)
+
   await pool.query(
     `
     insert into tg_links(chat_id, phone, crm_user_id, is_active, updated_at)
@@ -43,6 +47,9 @@ export async function upsertLinkByPhone(chatId: number, phone: string) {
 export async function upsertLinkByUserId(chatId: number, crmUserId: number) {
   // Если crm_user_id уже привязан к другому чату — перетираем (для демо удобно).
   // В проде можно сделать подтверждение/разруливание.
+
+  console.warn('rewrite link by CRM user_id:', crmUserId, ' for chat with #id:', chatId)
+
   await pool.query(
     `
     update tg_links
@@ -66,6 +73,8 @@ export async function upsertLinkByUserId(chatId: number, crmUserId: number) {
 }
 
 export async function setCrmUserIdForChat(chatId: number, crmUserId: number) {
+  console.warn('set CRM user_id:', crmUserId, ' for chat with #id:', chatId)
+
   await pool.query(
     `
     update tg_links
@@ -77,6 +86,8 @@ export async function setCrmUserIdForChat(chatId: number, crmUserId: number) {
 }
 
 export async function deactivateChat(chatId: number) {
+  console.warn('deactivating chat with #id:', chatId)
+
   await pool.query(
     `
     update tg_links
@@ -88,6 +99,8 @@ export async function deactivateChat(chatId: number) {
 }
 
 export async function unlinkPhone(chatId: number) {
+  console.warn('unlinking phone from chat with #id:', chatId)
+
   await pool.query(
     `
     update tg_links
@@ -99,6 +112,8 @@ export async function unlinkPhone(chatId: number) {
 }
 
 export async function unlinkUserId(chatId: number) {
+  console.warn('unlinking CRM user_Id from chat with #id:', chatId)
+
   await pool.query(
     `
     update tg_links
@@ -110,6 +125,8 @@ export async function unlinkUserId(chatId: number) {
 }
 
 export async function getLinkByChat(chatId: number): Promise<TgLink | null> {
+  console.warn('receiving info by chat_id:', chatId)
+
   const r = await pool.query(
     `
     select chat_id, phone, crm_user_id, is_active
@@ -132,6 +149,8 @@ export async function getLinkByChat(chatId: number): Promise<TgLink | null> {
 }
 
 export async function getChatIdByCrmUserId(crmUserId: number): Promise<number | null> {
+  console.warn('receiving chat_id by CRM user_id', crmUserId)
+
   const r = await pool.query(
     `
     select chat_id
@@ -148,5 +167,7 @@ export async function getChatIdByCrmUserId(crmUserId: number): Promise<number | 
 }
 
 export async function closeDb() {
+  console.warn('closing connection to DB...')
+
   await pool.end();
 }

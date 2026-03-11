@@ -1,14 +1,12 @@
 import type { UserSubscription } from './moyklass.js';
 
-export type Thresholds =
-{
+export type Thresholds = {
 	daysToEnd: number;
 	remainVisits: number;
 	freezeEndDays: number;
 };
 
-export type CandidateEvent =
-{
+export type CandidateEvent = {
 	event: 'subscription.expiringSoon' | 'subscription.frozenEnding';
 	userId: number;
 	userSubscriptionId: number;
@@ -21,37 +19,32 @@ export type CandidateEvent =
 	endDateEffective: string | null; // yyyy-mm-dd
 };
 
-function parseDate (s?: string) : Date | null
-{
+function parseDate (s?: string) : Date | null {
 	if (!s) return null;
 	const d = new Date(s);
 	if (Number.isNaN(+d)) return null;
 	return d;
 }
 
-function daysBetweenCeil (a: Date, b: Date)
-{
+function daysBetweenCeil (a: Date, b: Date) {
 	// ceil((b-a)/day)
 	return Math.ceil((+b - +a) / 86400000);
 }
 
-export function calcDaysToEnd (us: UserSubscription, now: Date) : { days: number | null; eff: string | null }
-{
+export function calcDaysToEnd (us: UserSubscription, now: Date) : { days: number | null; eff: string | null } {
 	const d = parseDate(us.overDate) ?? parseDate(us.endDate);
 	if (!d) return { days: null, eff: null };
 	return { days: daysBetweenCeil(now, d), eff: us.overDate ?? us.endDate ?? null };
 }
 
-export function calcFreezeDaysLeft (us: UserSubscription, now: Date) : number | null
-{
+export function calcFreezeDaysLeft (us: UserSubscription, now: Date) : number | null {
 	const to = parseDate(us.freezeTo);
 	if (!to) return null;
 
 	return daysBetweenCeil(now, to);
 }
 
-export function pickCandidates (subs: UserSubscription[], userId: number, thr: Thresholds, now: Date) : CandidateEvent[]
-{
+export function pickCandidates (subs: UserSubscription[], userId: number, thr: Thresholds, now: Date) : CandidateEvent[] {
 	const out: CandidateEvent[] = [];
 
 	for (const us of subs)
@@ -103,8 +96,7 @@ export function pickCandidates (subs: UserSubscription[], userId: number, thr: T
 }
 
 // MVP-проверка “есть свежая замена”
-export function hasFreshReplacement (allSubs: UserSubscription[], candidate: CandidateEvent, thr: Thresholds, now: Date)
-{
+export function hasFreshReplacement (allSubs: UserSubscription[], candidate: CandidateEvent, thr: Thresholds, now: Date) {
 	for (const us of allSubs)
 	{
 		if (us.id === candidate.userSubscriptionId) continue;

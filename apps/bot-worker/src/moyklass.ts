@@ -6,8 +6,7 @@ export type MoyklassToken = {
 };
 
 export async function getToken (apiKey: string) : Promise<MoyklassToken> {
-	const r = await fetch(`${BASE}/auth/getToken`,
-		{
+	const r = await fetch(`${BASE}/auth/getToken`, {
 			method: 'POST',
 			headers:
 			{
@@ -16,8 +15,7 @@ export async function getToken (apiKey: string) : Promise<MoyklassToken> {
 			body: JSON.stringify({ apiKey })
 		});
 
-	if (!r.ok)
-	{
+	if (!r.ok) {
 		const t = await r.text().catch(() => '');
 		throw new Error(`moyklass getToken failed: ${r.status} ${t}`);
 	}
@@ -25,16 +23,14 @@ export async function getToken (apiKey: string) : Promise<MoyklassToken> {
 	return await r.json() as MoyklassToken;
 }
 
-function authHeaders (token: string)
-{
+function authHeaders (token: string) {
 	return {
 		'x-access-token': token,
 		'Content-Type': 'application/json'
 	};
 }
 
-export type UserSubscription =
-{
+export type UserSubscription = {
 	id: number;
 	userId: number;
 	subscriptionId: number;
